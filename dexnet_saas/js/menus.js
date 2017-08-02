@@ -6,17 +6,21 @@ $(function(){
     });
 });
 
+MENU_WIDTHS = {"download-menu":"250px",
+               "settings-menu":"300px"}
+
 function openL0Menu() {
     document.getElementById("menu").style.width = "250px";
 }
 function closeL0Menu() {
     closeL1Menus(function() {
-        document.getElementById(menu_name).style.width = "250px"
+        document.getElementById("menu").style.width = "0px"
     });
 }
 function openL1Menu(menu_name) {
     closeL1Menus(function() {
-        document.getElementById(menu_name).style.width = "250px"
+        
+        document.getElementById(menu_name).style.width = MENU_WIDTHS[menu_name]
     });
 }
 function closeL1Menu(menu_name) {
@@ -31,3 +35,5 @@ function closeL1Menus(todo) {
     setTimeout(todo, (closeL1Menu("download-menu") +
                       closeL1Menu("settings-menu")) * 500);
 }
+
+$('input[type=checkbox]').onoff();

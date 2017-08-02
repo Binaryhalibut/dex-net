@@ -15,10 +15,10 @@
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
     <link rel="stylesheet" href="css/index.css">
+    
+    <script src="plugins/onoff/onoff.js"></script>
+    <link rel="stylesheet" href="plugins/onoff/onoff.css"></script>
 
-    <style>
-
-    </style>
 </head>
 <body>
     <input id="mesh-file-field" type="file" style="display:none"/>
@@ -34,7 +34,16 @@
             <a> Grasps </a>
         </div>
         <div id="settings-menu" class="sidenav" style="right:250px">
-            <a href=""> Grasp filtering </a>
+            <div style="position:absolute;width:280px">
+                <a href="" style="float:left"> Filter by metric </a>
+                <div style="float:right;top:10px" class="onoffswitch">
+                    <input type="checkbox" class="onoffswitch-checkbox" id="myonoffswitch" />
+                    <label class="onoffswitch-label" for="myonoffswitch">
+                        <span class="onoffswitch-inner"></span>
+                        <span class="onoffswitch-switch"></span>
+                    </label>
+                </div>
+            </div>
         </div>
     
     <div align="right" class="menu-button" onclick="openL0Menu()">Menu&thinsp;&#9776</div>
