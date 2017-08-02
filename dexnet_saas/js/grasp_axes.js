@@ -1,4 +1,4 @@
-function addGraspAxisVectors(center, axis, width, color) {
+function getGraspAxis(center, axis, width, color) {
     center = new THREE.Vector3().fromArray(center)
     axis = new THREE.Vector3().fromArray(axis)
     var axis_scaled = axis.clone().multiplyScalar(width / 2.0)

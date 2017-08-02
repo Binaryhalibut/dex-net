@@ -67,21 +67,7 @@ function init() {
     
     /* Initialize default mesh, grasps */
     addModelUrl('assets/bar_clamp.obj');
-    addGraspAxesUrl('assets/bar_clamp_grasps.json');
-
-
-    /* Jquery */
-    $( "#mesh-file-field:hidden" ).change(function() {
-        if (grasp_axes !== null) {
-            for (var i = 0; i < grasp_axes.length; i++) {
-                scene.remove(grasp_axes[i])
-            }
-        }
-        addModelFile(this.files[0])
-        camera.position.z = 1;
-        camera.position.y = 1;
-        controls.forceIdle();
-    });
+    loadGraspAxes('assets/bar_clamp_grasps.json');
 }
 
 function onWindowResize() {
@@ -104,32 +90,21 @@ function render() {
     renderer.render(scene, camera);
 }
 
-function addGraspAxesUrl(url){
+function loadGraspAxes(url){
     $.getJSON(url, function(data) {
         grasp_axes_json = data
         grasp_axes_json.sort(function(a, b) {
             return a['metric_score'] - b['metric_score']
         });
-        addGraspAxes(data, 0, Infinity)
-        $( function() {
-            min = grasp_axes_json[0]['metric_score']
-            max = grasp_axes_json[grasp_axes_json.length - 1]['metric_score']
-            $( "#slider-range" ).slider({
-                range: true,
-                min: min,
-                max: max,
-                values: [ min, max ],
-                step: (max - min) / 200,
-                slide: function( event, ui ) {
-                    $( "#metric-limits" ).val( ui.values[ 0 ].toExponential(3) + " – " + ui.values[ 1 ].toExponential(3) );
-                },
-                stop: function( event, ui ) {
-                    addGraspAxes(data, $( "#slider-range" ).slider( "values", 0 ), $( "#slider-range" ).slider( "values", 1 ));
-                }
-            });
-        $( "#metric-limits" ).val( $( "#slider-range" ).slider( "values", 0 ).toExponential(3) + " – " + $( "#slider-range" ).slider( "values", 1 ).toExponential(3) );
-        $( "#rendered-count" ).val( "(" + num_grasps_rendered + " grasps rendered)");
-        } );
+        addGraspAxes(grasp_axes_json, 0, Infinity);
+        min = grasp_axes_json[0]['metric_score'];
+        max = grasp_axes_json[grasp_axes_json.length - 1]['metric_score'];
+        $( "#slider-range" ).slider({
+            range: true,
+            min: min,
+            max: max,
+            step: (max - min) / 200,
+        });
     });
 }
 
@@ -152,7 +127,7 @@ function addGraspAxes(data, min_metric, max_metric){
         return new THREE.Color(Math.min(Math.sqrt(Math.max(1 - 2 * score, 0)), 1), Math.min(Math.sqrt(2 * score), 1), 0)
     }
     for (var i = lower_idx; i <= upper_idx; i++){
-        axis = addGraspAxisVectors(data[i]['center'], data[i]['axis'], data[i]['open_width'], getHexColor(data[i]['metric_score']));
+        axis = getGraspAxis(data[i]['center'], data[i]['axis'], data[i]['open_width'], getHexColor(data[i]['metric_score']));
         scene.add(axis);
         grasp_axes.push(axis);
     }
@@ -179,12 +154,45 @@ function addModelUrl(url) {
     });
 }
 
-function addModelFile(file){
+
+
+/* Jquery */
+$( "#mesh-file-field:hidden" ).change(function() {
+    if (grasp_axes !== null) {
+        for (var i = 0; i < grasp_axes.length; i++) {
+            scene.remove(grasp_axes[i])
+        }
+    }
     var reader = new FileReader();
     reader.onload = function(event){
         url = event.target.result
         addModelUrl(url)
     }
-    reader.readAsDataURL(file)
-}
+    reader.readAsDataURL(this.files[0])
+    camera.position.z = 1;
+    camera.position.y = 1;
+    controls.forceIdle();
+});
+$( "#slider-range" ).slider({
+    range: true,
+    min: 0,
+    max: 100,
+    values: [ 0, 100 ],
+    step: 0.5,
+    slide: function( event, ui ) {
+        $( "#metric-limits" ).val( ui.values[ 0 ].toExponential(3) + " – " + ui.values[ 1 ].toExponential(3) );
+    },
+    stop: function( event, ui ) {
+        addGraspAxes(grasp_axes_json, $( "#slider-range" ).slider( "values", 0 ), $( "#slider-range" ).slider( "values", 1 ));
+    }
+});
+$( "#metric-limits" ).val( $( "#slider-range" ).slider( "values", 0 ).toExponential(3) + " – " + $( "#slider-range" ).slider( "values", 1 ).toExponential(3) );
+$( "#rendered-count" ).val( "(" + num_grasps_rendered + " grasps rendered)");
 
+$( "#wireframe-enable" ).change(function() {
+    if(event.target.checked){
+        material_main.wireframe = true;
+    } else {
+        material_main.wireframe = false;
+    }
+});
