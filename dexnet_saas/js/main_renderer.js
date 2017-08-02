@@ -23,7 +23,8 @@ function init() {
 
     /* Camera */
     camera = new THREE.PerspectiveCamera(5, window.innerWidth / window.innerHeight, 1, 1000);
-    camera.position.z = 1.5;
+    camera.position.z = 1;
+	camera.position.y = 1;
 
     /* Scene */
     scene = new THREE.Scene();
@@ -53,27 +54,33 @@ function init() {
 
     /* Controls */
     controls = new THREE.TrackballControls(camera, renderer.domElement);
-    controls.staticMoving = true;
-    controls.rotateSpeed = 6.0;
+    controls.staticMoving = false;
+    controls.rotateSpeed = 3.0;
+	controls.dynamicDampingFactor = 0.2;
     controls.enableZoom = true;
+	controls.minDistance = 1;
+	controls.maxDistance = 10;
+	controls.noPan = true;
 
     /* Events */
     window.addEventListener('resize', onWindowResize, false);
-    window.addEventListener('keydown', onKeyboardEvent, false);
-
+    
     /* Initialize default mesh, grasps */
     addModelUrl('assets/bar_clamp.obj');
     addGraspAxesUrl('assets/bar_clamp_grasps.json');
 
 
     /* Jquery */
-    $( "#mesh-file-field" ).change(function() {
+    $( "#mesh-file-field:hidden" ).change(function() {
         if (grasp_axes !== null) {
             for (var i = 0; i < grasp_axes.length; i++) {
                 scene.remove(grasp_axes[i])
             }
         }
         addModelFile(this.files[0])
+        camera.position.z = 1;
+        camera.position.y = 1;
+        controls.forceIdle();
     });
 }
 
@@ -85,29 +92,6 @@ function onWindowResize() {
     camera.updateProjectionMatrix();
 
     renderer.setSize(window.innerWidth, window.innerHeight);
-}
-
-function onKeyboardEvent(e) {
-    if (e.code === 'KeyM') {
-        wireframe = !wireframe;
-        if (wireframe) {
-            material_main.wireframe = true;
-        } else {
-            material_main.wireframe = false;
-        }
-    }
-    if (e.code === 'KeyW') {
-        var colorHex = material_main.color.getHex()
-        if (colorHex < 0xffffff) {
-            material_main.color.setHex(colorHex + 0x010101)
-        }
-    }
-    if (e.code ==='KeyS') {
-        var colorHex = material_main.color.getHex()
-        if (colorHex > 0x000000) {
-            material_main.color.setHex(colorHex - 0x010101)
-        }
-    }
 }
 
 function animate() {
@@ -168,89 +152,12 @@ function addGraspAxes(data, min_metric, max_metric){
         return new THREE.Color(Math.min(Math.sqrt(Math.max(1 - 2 * score, 0)), 1), Math.min(Math.sqrt(2 * score), 1), 0)
     }
     for (var i = lower_idx; i <= upper_idx; i++){
-        grasp_axes.push(addGraspAxisVectors(data[i]['center'], data[i]['axis'], data[i]['open_width'], getHexColor(data[i]['metric_score'])))
+        axis = addGraspAxisVectors(data[i]['center'], data[i]['axis'], data[i]['open_width'], getHexColor(data[i]['metric_score']));
+        scene.add(axis);
+        grasp_axes.push(axis);
     }
     num_grasps_rendered = upper_idx - lower_idx + 1
     $( "#rendered-count" ).val( "(" + num_grasps_rendered + " grasps rendered)" );
-}
-
-function addGraspAxisVectors(center, axis, width, color) {
-    center = new THREE.Vector3().fromArray(center)
-    axis = new THREE.Vector3().fromArray(axis)
-    var axis_scaled = axis.clone().multiplyScalar(width / 2.0)
-    ep1 = center.clone().sub(axis_scaled)
-    ep2 = center.clone().add(axis_scaled)
-    
-    material = new THREE.MeshLambertMaterial({color : color})
-    material.side = THREE.DoubleSide
-
-
-    var radiusSegments = 16
-    var radius = 0.002
-    var capsule = new THREE.Object3D();
-    var cylinderGeom = new THREE.CylinderGeometry (radius, radius, width, radiusSegments, 1, true); // open-ended
-    var cylinderMesh = new THREE.Mesh (cylinderGeom, material);
-
-    // pass in the cylinder itself, its desired axis, and the place to move the center.
-    makeLengthAngleAxisTransform (cylinderMesh, axis, center);
-    capsule.add (cylinderMesh);
-
-    // instance geometry
-    var hemisphGeom = new THREE.SphereGeometry (radius, radiusSegments, radiusSegments/2, 0, 2*Math.PI, 0, Math.PI/2);
-
-    // make a cap instance of hemisphGeom around 'center', looking into some 'direction'
-    var makeHemiCapMesh = function (direction, center)
-    {
-        var cap = new THREE.Mesh (hemisphGeom, material);
-
-        makeLengthAngleAxisTransform (cap, direction, center);
-
-        return cap;
-    };
-    capsule.add (makeHemiCapMesh (axis, ep2));
-
-    // reverse the axis so that the hemiCaps would look the other way
-    axis.negate();
-
-    capsule.add (makeHemiCapMesh (axis, ep1));
-
-    scene.add( capsule );
-
-    return capsule;
-}
-
-// Transform object to align with given axis and then move to center 
-function makeLengthAngleAxisTransform (obj, align_axis, center)
-{
-    obj.matrixAutoUpdate = false;
-
-    // From left to right using frames: translate, then rotate; TR.
-    // So translate is first.
-    obj.matrix.makeTranslation (center.x, center.y, center.z);
-
-    // take cross product of axis and up vector to get axis of rotation
-    var yAxis = new THREE.Vector3 (0, 1, 0);
-
-    // Needed later for dot product, just do it now;
-    var axis = new THREE.Vector3();
-    axis.copy (align_axis);
-    axis.normalize();
-
-    var rotationAxis = new THREE.Vector3();
-    rotationAxis.crossVectors (axis, yAxis);
-    if  (rotationAxis.length() < 0.000001) {
-        // Special case: if rotationAxis is just about zero, set to X axis,
-        // so that the angle can be given as 0 or PI. This works ONLY
-        // because we know one of the two axes is +Y.
-        rotationAxis.set (1, 0, 0);
-    }
-    rotationAxis.normalize();
-
-    // take dot product of axis and up vector to get cosine of angle of rotation
-    var theta = -Math.acos (axis.dot (yAxis));
-    var rotMatrix = new THREE.Matrix4();
-    rotMatrix.makeRotationAxis (rotationAxis, theta);
-    obj.matrix.multiply (rotMatrix);
 }
 
 

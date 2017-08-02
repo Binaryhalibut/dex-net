@@ -3,6 +3,8 @@
  * @author Mark Lundin 	/ http://mark-lundin.com
  * @author Simone Manini / http://daron1337.github.io
  * @author Luca Antiga 	/ http://lantiga.github.io
+ *
+ * Modified to add idle rotation
  */
 
 THREE.TrackballControls = function ( object, domElement ) {
@@ -34,6 +36,12 @@ THREE.TrackballControls = function ( object, domElement ) {
 	this.maxDistance = Infinity;
 
 	this.keys = [ 65 /*A*/, 83 /*S*/, 68 /*D*/ ];
+	
+	this.idleTimeout = 5000;
+	this.idleInitialSpeed = 0;
+	this.idleAxis = new THREE.Vector3(0, 1, 0);
+	this.idleMaxSpeed = 0.01;
+	this.idleAccelerationConstant = 0.00001;
 
 	// internals
 
@@ -52,7 +60,8 @@ THREE.TrackballControls = function ( object, domElement ) {
 	_moveCurr = new THREE.Vector2(),
 
 	_lastAxis = new THREE.Vector3(),
-	_lastAngle = 0,
+	_lastAngle = 0.01,
+	_lastInteractionTime = 0,
 
 	_zoomStart = new THREE.Vector2(),
 	_zoomEnd = new THREE.Vector2(),
@@ -144,6 +153,10 @@ THREE.TrackballControls = function ( object, domElement ) {
 		};
 
 	}() );
+    
+    this.forceIdle = ( function() {
+        _lastInteractionTime = 0;
+    });
 
 	this.rotateCamera = ( function() {
 
@@ -185,8 +198,18 @@ THREE.TrackballControls = function ( object, domElement ) {
 				_lastAngle = angle;
 
 			} else if ( ! _this.staticMoving && _lastAngle ) {
-
-				_lastAngle *= Math.sqrt( 1.0 - _this.dynamicDampingFactor );
+				if (Date.now() - _lastInteractionTime > this.idleTimeout){
+					if (_lastAngle < this.idleInitialSpeed ){
+						_lastAngle = this.idleInitialSpeed
+					} else {
+						if (_lastAngle < this.idleMaxSpeed){
+							_lastAngle += this.idleAccelerationConstant
+						}
+					}
+					_lastAxis = this.object.up.clone()
+				} else {
+					_lastAngle *= Math.sqrt( 1.0 - _this.dynamicDampingFactor );	
+				}
 				_eye.copy( _this.object.position ).sub( _this.target );
 				quaternion.setFromAxisAngle( _lastAxis, _lastAngle );
 				_eye.applyQuaternion( quaternion );
@@ -393,6 +416,8 @@ THREE.TrackballControls = function ( object, domElement ) {
 	function mousedown( event ) {
 
 		if ( _this.enabled === false ) return;
+		
+		_lastInteractionTime = Infinity;
 
 		event.preventDefault();
 		event.stopPropagation();
@@ -454,6 +479,8 @@ THREE.TrackballControls = function ( object, domElement ) {
 	function mouseup( event ) {
 
 		if ( _this.enabled === false ) return;
+		
+		_lastInteractionTime = Date.now()
 
 		event.preventDefault();
 		event.stopPropagation();
@@ -469,6 +496,8 @@ THREE.TrackballControls = function ( object, domElement ) {
 	function mousewheel( event ) {
 
 		if ( _this.enabled === false ) return;
+		
+		_lastInteractionTime = Date.now()
 
 		event.preventDefault();
 		event.stopPropagation();
@@ -500,6 +529,8 @@ THREE.TrackballControls = function ( object, domElement ) {
 	function touchstart( event ) {
 
 		if ( _this.enabled === false ) return;
+		
+		_lastInteractionTime = Date.now()
 
 		switch ( event.touches.length ) {
 
@@ -558,6 +589,8 @@ THREE.TrackballControls = function ( object, domElement ) {
 	function touchend( event ) {
 
 		if ( _this.enabled === false ) return;
+		
+		_lastInteractionTime = Date.now()
 
 		switch ( event.touches.length ) {
 

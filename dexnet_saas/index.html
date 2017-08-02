@@ -7,49 +7,52 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <script src="js/three.js"></script>
-    <script src="js/Detector.js"></script>
-    <script src="js/TrackballControls.js"></script>
-    <script src="js/OBJLoader.js"></script>
+    <script src="js/three/three.js"></script>
+    <script src="js/three/Detector.js"></script>
+    <script src="js/three/TrackballControls.js"></script>
+    <script src="js/three/OBJLoader.js"></script>
     <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
-    <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <link rel="stylesheet" href="css/index.css">
 
     <style>
-        body {
-            overflow: hidden;
-            margin: 0;
-            padding: 0;
-        }
-        .footer {
-            position: absolute;
-            right: 0;
-            bottom: 100px;
-            left: 0;
-            padding: 1rem;
-        }
-        .metric-slider {
-            position: fixed;
-            width: 500px;
-            left: 50%;
-            margin-left: -250px;
-        }
+
     </style>
 </head>
 <body>
-    <input type="file" id="mesh-file-field">
+    <input id="mesh-file-field" type="file" style="display:none"/>
+
+    <div id="menu" class="sidenav">
+        <a href="javascript:void(0)" class="closebtn" onclick="closeL0Menu()">&times;</a>
+        <a href="" id="upload-link">Upload Mesh</a>
+        <a href="" onclick="event.preventDefault(); openL1Menu('download-menu')">Download</a>
+        <a href="" onclick="event.preventDefault(); openL1Menu('settings-menu')">Settings</a>
+    </div>
+        <div id="download-menu" class="sidenav" style="right:250px">
+            <a> Rescaled mesh </a>
+            <a> Grasps </a>
+        </div>
+        <div id="settings-menu" class="sidenav" style="right:250px">
+            <a href=""> Grasp filtering </a>
+        </div>
+    
+    <div align="right" class="menu-button" onclick="openL0Menu()">Menu&thinsp;&#9776</div>
+    <script src="js/menus.js"></script>
+	
     <div class="footer">
-        <div class="metric-slider">
+        <div class="metric-slider" id="metric-slider">
             <p>
-                <label for="metric-limits" style="color;font-family:Arial;font-size:12px">Grasp metric range:</label>
-                <input type="text" id="metric-limits" readonly style="border:0;color:#d6711f;font-weight:bold;background-color:rgba(0,0,0,0);width:160px">
-                <input type="text" id="rendered-count" readonly style="border:0;font-family:Arial;font-size:12px;background-color:rgba(0,0,0,0);width:140px">
+                <label for="metric-limits">Grasp metric range:</label>
+                <input type="text" id="metric-limits" class="slider-display-field" readonly>
+                <input type="text" id="rendered-count" class=slider-display-field readonly>
             </p>
             <div id="slider-range"></div>
         </div>
     </div>
-
+    
+    
+    <script src="js/grasp_axes.js"></script>
     <script src="js/main_renderer.js"></script>
-
 </body>
 </html>
