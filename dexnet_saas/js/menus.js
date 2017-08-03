@@ -33,7 +33,7 @@ function closeL1Menu(menu_name) {
 }
 function closeL1Menus(todo) {
     setTimeout(todo, (closeL1Menu("download-menu") +
-                      closeL1Menu("settings-menu")) * 500);
+                      closeL1Menu("settings-menu")) * 200);
 }
 
 $('input[type=checkbox]').onoff();
