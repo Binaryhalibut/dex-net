@@ -228,14 +228,14 @@ function followProgress(){
             set_pbar(40, "Sampling grasps")
         } else if (data['state'] === 'computing metrics') {
             set_pbar(70, "Computing metrics")
-        } else if (data['state'] === 'error') {
-            enter_upload_mode();
-            alert("Mesh processing failed")
         }
         if (data['state'] === 'done') {
             enter_grasp_mode();
             addModelUrl(url_base);
             loadGraspAxes(url_base + "/grasps");
+        } else if (data['state'] === 'error') {
+            enter_upload_mode();
+            alert("Mesh processing failed")
         } else{
             setTimeout(followProgress, 1000); // recursively call function again
         }
