@@ -144,7 +144,6 @@ function addModelUrl(url, rescale=false) {
     xhr.responseType = 'blob';
     xhr.onload = function(e) {
         if (this.status == 200) {
-            console.log(this.response)
             mesh_main_file = new File([this.response], model_id + ".obj");
             addModelFile(mesh_main_file);
         }
@@ -185,7 +184,6 @@ function addModelFile(file, rescale=false){
     camera.position.z = 1;
     camera.position.y = 1;
     controls.forceIdle();
-    console.log(mesh_main_file)
 }
 
 /* Upload current model to server */
