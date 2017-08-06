@@ -220,8 +220,7 @@ function followProgress(){
     $.getJSON(url, function(data) {
         if (data['state'] === 'in queue'){
             var position = data['position']
-            if(position === 0){position = 1}
-            set_pbar(10 + 10 / Math.sqrt(position + 1), "Waiting in queue (position " + position + ")")
+            set_pbar(10 + 10 / Math.sqrt(position + 2), "Waiting in queue (position " + position + ")")
         } else if (data['state'] === 'computing SDF') {
             set_pbar(20, "Computing SDF")
         } else if (data['state'] === 'sampling grasps') {
