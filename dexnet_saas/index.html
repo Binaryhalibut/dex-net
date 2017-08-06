@@ -7,10 +7,11 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <script src="js/three/three.js"></script>
-    <script src="js/three/Detector.js"></script>
-    <script src="js/three/TrackballControls.js"></script>
-    <script src="js/three/OBJLoader.js"></script>
+    <script src="js/third_party/three/three.js"></script>
+    <script src="js/third_party/three/Detector.js"></script>
+    <script src="js/third_party/three/TrackballControls.js"></script>
+    <script src="js/third_party/three/OBJLoader.js"></script>
+    <script src="js/third_party/download.js"></script>
     <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
@@ -30,8 +31,8 @@
         <a href="" onclick="event.preventDefault(); openL1Menu('settings-menu')">Settings</a>
     </div>
         <div id="download-menu" class="sidenav" style="right:250px">
-            <a> Rescaled mesh </a>
-            <a> Grasps </a>
+            <a href="" onclick="event.preventDefault();download_mesh()"> Rescaled mesh </a>
+            <a href="" onclick="event.preventDefault();download_grasps()"> Grasps </a>
         </div>
         <div id="settings-menu" class="sidenav" style="right:250px;">
             <div style="position:absolute;width:280px">
@@ -63,6 +64,15 @@
     <div class="footer" id="footer-upload-button">
         <div href="" class="upload-arrow" onclick="event.preventDefault(); uploadMesh()">&#x21EA;</div>
         <div href="" class="upload-text" onclick="event.preventDefault(); uploadMesh()">upload</div>
+    </div>
+
+    <div class="footer" id="footer-progress-bar">
+        <div class="progress-bar-container">
+            <div id="progress-bar" class="progress-bar">
+                <div id="progress-bar-bar" class="progress-bar-bar"></div>
+            </div>
+            <div id="progress-bar-text" class="progress-bar-text">asdf</div>
+        </div>
     </div>
     
     

@@ -69,7 +69,7 @@ function init() {
     /* Initialize default mesh, grasps */
     addModelUrl('assets/bar_clamp.obj');
     loadGraspAxes('assets/bar_clamp_grasps.json');
-    enter_upload_mode();
+    enter_grasp_mode();
 }
 
 function onWindowResize() {
@@ -137,39 +137,60 @@ function addGraspAxes(data, min_metric, max_metric){
     $( "#rendered-count" ).val( "(" + num_grasps_rendered + " grasps rendered)" );
 }
 
-/* Add model from url (or blob) */
-function addModelUrl(url, rescale=true) {
-    if (mesh_main !== null) {
-        scene.remove(mesh_main)
-    }
-    var objLoader = new THREE.OBJLoader();
-    material_main = new THREE.MeshLambertMaterial({color : 0xa0a0a0})
-    material_main.side = THREE.DoubleSide
-    objLoader.load(url, function (object) {
-        object.traverse( function ( child ) {
-            if ( child instanceof THREE.Mesh ) {
-                child.material = material_main;
-            }
-        });
-        if (rescale){
-            var bBox = new THREE.Box3().setFromObject(object)
-            var bBoxSize = bBox.getSize();
-            var bBoxCenter = bBox.getCenter();
-            scale = 0.040 / Math.min(bBoxSize.y, bBoxSize.x, bBoxSize.z);
-            console.log(scale)
-            console.log(bBox.getCenter())
-            object.scale.set(scale, scale, scale)
-            object.position.x -= bBoxCenter.x;
-            object.position.y -= bBoxCenter.y;
-            object.position.z -= bBoxCenter.z;
+/* Add model */
+function addModelUrl(url, rescale=false) {
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', url, true);
+    xhr.responseType = 'blob';
+    xhr.onload = function(e) {
+        if (this.status == 200) {
+            console.log(this.response)
+            mesh_main_file = new File([this.response], model_id + ".obj");
+            addModelFile(mesh_main_file);
         }
-        scene.add(object);
-        mesh_main = object
-    });
+    };
+    xhr.send();
+}
+function addModelFile(file, rescale=false){
+    var reader = new FileReader();
+    reader.onload = function(event){
+        if (mesh_main !== null) {
+            scene.remove(mesh_main)
+        }
+        var objLoader = new THREE.OBJLoader();
+        material_main = new THREE.MeshLambertMaterial({color : 0xa0a0a0})
+        material_main.side = THREE.DoubleSide
+        objLoader.load(event.target.result, function (object) {
+            object.traverse( function ( child ) {
+                if ( child instanceof THREE.Mesh ) {
+                    child.material = material_main;
+                }
+            });
+            if (rescale){
+                var bBox = new THREE.Box3().setFromObject(object)
+                var bBoxSize = bBox.getSize();
+                var bBoxCenter = bBox.getCenter();
+                scale = 0.040 / Math.min(bBoxSize.y, bBoxSize.x, bBoxSize.z);
+                object.scale.set(scale, scale, scale)
+                object.position.x -= bBoxCenter.x * scale;
+                object.position.y -= bBoxCenter.y * scale;
+                object.position.z -= bBoxCenter.z * scale;
+            }
+            scene.add(object);
+            mesh_main = object
+        });
+    }
+    reader.readAsDataURL(file)
+    mesh_main_file = file
+    camera.position.z = 1;
+    camera.position.y = 1;
+    controls.forceIdle();
+    console.log(mesh_main_file)
 }
 
 /* Upload current model to server */
 function uploadMesh() {
+    enter_pbar_mode();
     var reader = new FileReader();
     var xhr = new XMLHttpRequest();
     this.xhr = xhr;
@@ -177,24 +198,65 @@ function uploadMesh() {
     this.xhr.upload.addEventListener("progress", function(e) {
         if (e.lengthComputable) {
             var percentage = Math.round((e.loaded * 100) / e.total);
-            console.log(percentage)
+            set_pbar(percentage / 10, "Uploading file")
         }
     }, false);
     xhr.upload.addEventListener("load", function(e){
-        console.log("100%")
+        set_pbar(10, "Uploading file")
     }, false);
     xhr.onload = function() {
-        console.log(xhr.responseText)
-        console.log(JSON.parse(xhr.responseText))
+        var response = JSON.parse(xhr.responseText)
+        model_id = response["id"]
+        followProgress()
     }
-      
     var formData = new FormData();
     formData.append("file", mesh_main_file);
-    xhr.open("POST", "http://127.0.0.1:5000/upload-mesh");
+    xhr.open("POST", "http://automation.berkeley.edu/dex-net-api/upload-mesh");
     xhr.send(formData);
 }
 
+/* Update progress bar as things get finished */
+function followProgress(){
+    var url_base = "http://automation.berkeley.edu/dex-net-api/" + model_id
+    var url = url_base + "/processing-progress"
+    $.getJSON(url, function(data) {
+        if (data['state'] === 'in queue'){
+            var position = data['position']
+            if(position === 0){position = 1}
+            set_pbar(10 + 10 / Math.sqrt(position + 1), "Waiting in queue (position " + position + ")")
+        } else if (data['state'] === 'computing SDF') {
+            set_pbar(20, "Computing SDF")
+        } else if (data['state'] === 'sampling grasps') {
+            set_pbar(40, "Sampling grasps")
+        } else if (data['state'] === 'computing metrics') {
+            set_pbar(70, "Computing metrics")
+        } else if (data['state'] === 'error') {
+            enter_upload_mode();
+            alert("Mesh processing failed")
+        }
+        if (data['state'] === 'done') {
+            enter_grasp_mode();
+            addModelUrl(url_base);
+            loadGraspAxes(url_base + "/grasps");
+        } else{
+            setTimeout(followProgress, 1000); // recursively call function again
+        }
+    });
+}
 
+
+function set_pbar(percent, text="Working..."){
+    var pBarWidth = percent * 4;
+    document.getElementById("progress-bar-bar").style.width = String(pBarWidth) + "px"
+    document.getElementById("progress-bar-text").innerHTML = text
+}
+
+function download_mesh(){
+    download(mesh_main_file, 'mesh_scaled.obj', 'application/octet-stream')
+}
+function download_grasps(){
+    download(JSON.stringify(grasp_axes_json, null, 4), 'grasps.json', 'application/octet-stream')
+}
 
 /* Jquery hooks */
 $( "#mesh-file-field:hidden" ).change(function() {
@@ -203,15 +265,7 @@ $( "#mesh-file-field:hidden" ).change(function() {
             scene.remove(grasp_axes[i])
         }
     }
-    var reader = new FileReader();
-    reader.onload = function(event){
-        addModelUrl(event.target.result, rescale=true)
-    }
-    reader.readAsDataURL(this.files[0])
-    mesh_main_file = this.files[0]
-    camera.position.z = 1;
-    camera.position.y = 1;
-    controls.forceIdle();
+    addModelFile(this.files[0], rescale=true)
     enter_upload_mode();
 });
 $( "#slider-range" ).slider({
