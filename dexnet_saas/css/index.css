@@ -11,6 +11,31 @@ body {
     left: 0;
     padding: 1rem;
 }
+
+/* Upload button */
+.upload-arrow{
+    text-align: center;
+    position: fixed;
+    width: 500px;
+    left: 50%;
+    margin-left: -250px;
+    font-size: 100px;
+    transform: scaleY(0.5);
+    cursor:pointer;
+    bottom:5px;
+}
+.upload-text{
+    text-align: center;
+    position: fixed;
+    width: 500px;
+    left: 50%;
+    margin-left: -250px;
+    font-size: 20px;
+    cursor:pointer;
+    bottom:20px;
+}
+
+/* Grasp slider */
 .metric-slider {
     position: fixed;
     width: 500px;

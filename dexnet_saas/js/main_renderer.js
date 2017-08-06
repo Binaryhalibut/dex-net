@@ -7,8 +7,9 @@ var container;
 
 var camera, controls, scene, renderer;
 var wireframe, ambient, keyLight, fillLight;
-var material_main, mesh_main=null;
+var material_main, mesh_main=null, mesh_main_file;
 var grasp_axes_json, grasp_axes=null, num_grasps_rendered;
+var model_id;
 
 var windowHalfX = window.innerWidth / 2;
 var windowHalfY = window.innerHeight / 2;
@@ -68,6 +69,7 @@ function init() {
     /* Initialize default mesh, grasps */
     addModelUrl('assets/bar_clamp.obj');
     loadGraspAxes('assets/bar_clamp_grasps.json');
+    enter_upload_mode();
 }
 
 function onWindowResize() {
@@ -90,6 +92,7 @@ function render() {
     renderer.render(scene, camera);
 }
 
+/* Handling grasp axes */
 function loadGraspAxes(url){
     $.getJSON(url, function(data) {
         grasp_axes_json = data
@@ -107,7 +110,6 @@ function loadGraspAxes(url){
         });
     });
 }
-
 function addGraspAxes(data, min_metric, max_metric){
     if (grasp_axes !== null) {
         for (var i = 0; i < grasp_axes.length; i++) {
@@ -135,8 +137,8 @@ function addGraspAxes(data, min_metric, max_metric){
     $( "#rendered-count" ).val( "(" + num_grasps_rendered + " grasps rendered)" );
 }
 
-
-function addModelUrl(url) {
+/* Add model from url (or blob) */
+function addModelUrl(url, rescale=true) {
     if (mesh_main !== null) {
         scene.remove(mesh_main)
     }
@@ -149,14 +151,52 @@ function addModelUrl(url) {
                 child.material = material_main;
             }
         });
+        if (rescale){
+            var bBox = new THREE.Box3().setFromObject(object)
+            var bBoxSize = bBox.getSize();
+            var bBoxCenter = bBox.getCenter();
+            scale = 0.040 / Math.min(bBoxSize.y, bBoxSize.x, bBoxSize.z);
+            console.log(scale)
+            console.log(bBox.getCenter())
+            object.scale.set(scale, scale, scale)
+            object.position.x -= bBoxCenter.x;
+            object.position.y -= bBoxCenter.y;
+            object.position.z -= bBoxCenter.z;
+        }
         scene.add(object);
         mesh_main = object
     });
 }
 
+/* Upload current model to server */
+function uploadMesh() {
+    var reader = new FileReader();
+    var xhr = new XMLHttpRequest();
+    this.xhr = xhr;
+    var self = this;
+    this.xhr.upload.addEventListener("progress", function(e) {
+        if (e.lengthComputable) {
+            var percentage = Math.round((e.loaded * 100) / e.total);
+            console.log(percentage)
+        }
+    }, false);
+    xhr.upload.addEventListener("load", function(e){
+        console.log("100%")
+    }, false);
+    xhr.onload = function() {
+        console.log(xhr.responseText)
+        console.log(JSON.parse(xhr.responseText))
+    }
+      
+    var formData = new FormData();
+    formData.append("file", mesh_main_file);
+    xhr.open("POST", "http://127.0.0.1:5000/upload-mesh");
+    xhr.send(formData);
+}
 
 
-/* Jquery */
+
+/* Jquery hooks */
 $( "#mesh-file-field:hidden" ).change(function() {
     if (grasp_axes !== null) {
         for (var i = 0; i < grasp_axes.length; i++) {
@@ -165,13 +205,14 @@ $( "#mesh-file-field:hidden" ).change(function() {
     }
     var reader = new FileReader();
     reader.onload = function(event){
-        url = event.target.result
-        addModelUrl(url)
+        addModelUrl(event.target.result, rescale=true)
     }
     reader.readAsDataURL(this.files[0])
+    mesh_main_file = this.files[0]
     camera.position.z = 1;
     camera.position.y = 1;
     controls.forceIdle();
+    enter_upload_mode();
 });
 $( "#slider-range" ).slider({
     range: true,

@@ -19,7 +19,6 @@ function closeL0Menu() {
 }
 function openL1Menu(menu_name) {
     closeL1Menus(function() {
-        
         document.getElementById(menu_name).style.width = MENU_WIDTHS[menu_name]
     });
 }
